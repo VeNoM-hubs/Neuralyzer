@@ -39,6 +39,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--tasks", type=str, default=None,
                    help="process tasks, comma-separated, e.g. 'CTD' or 'CTD,SFT,PFT'.")
     p.add_argument("--output-dir", type=str, default=None, help="Override train.output_dir.")
+    p.add_argument("--batch-size", type=int, default=None, help="Override train.batch_size.")
+    p.add_argument("--max-chunks", type=int, default=None,
+                   help="Override data.max_chunks_per_recording (lower if OOM; 0 = no cap).")
     p.add_argument("--max-epochs", type=int, default=None, help="Override train.max_epochs.")
     p.add_argument("--lr", type=float, default=None, help="Override train.lr (peak LR).")
     p.add_argument("--patience", type=int, default=None,
@@ -65,6 +68,10 @@ def apply_overrides(cfg: Config, args: argparse.Namespace) -> Config:
         cfg.data.process_tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
     if args.output_dir is not None:
         cfg.train.output_dir = args.output_dir
+    if args.batch_size is not None:
+        cfg.train.batch_size = args.batch_size
+    if args.max_chunks is not None:
+        cfg.data.max_chunks_per_recording = None if args.max_chunks <= 0 else args.max_chunks
     if args.max_epochs is not None:
         cfg.train.max_epochs = args.max_epochs
     if args.lr is not None:

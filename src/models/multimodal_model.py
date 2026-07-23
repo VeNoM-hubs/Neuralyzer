@@ -48,8 +48,12 @@ class MultimodalDementiaModel(nn.Module):
             model_name=cfg.speech_model_name,
             num_layers=cfg.num_speech_layers,
             freeze=cfg.freeze_speech,
+            gradient_checkpointing=cfg.gradient_checkpointing,
         )
-        self.text_encoder = TextEncoder(model_name=cfg.text_model_name, freeze=cfg.freeze_text)
+        self.text_encoder = TextEncoder(
+            model_name=cfg.text_model_name, freeze=cfg.freeze_text,
+            gradient_checkpointing=cfg.gradient_checkpointing,
+        )
 
         self.pooling = build_pooling(
             cfg.pooling, input_dim=self.speech_encoder.output_dim,

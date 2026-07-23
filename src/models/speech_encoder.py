@@ -25,7 +25,8 @@ from transformers import AutoModel
 
 class SpeechEncoder(nn.Module):
     def __init__(self, model_name: str = "facebook/hubert-base-ls960",
-                 num_layers: int = 2, freeze: bool = False) -> None:
+                 num_layers: int = 2, freeze: bool = False,
+                 gradient_checkpointing: bool = False) -> None:
         super().__init__()
         self.backbone = AutoModel.from_pretrained(model_name, output_hidden_states=True)
         self.num_layers = num_layers
@@ -35,6 +36,13 @@ class SpeechEncoder(nn.Module):
             for p in self.backbone.parameters():
                 p.requires_grad = False
             self.backbone.eval()
+        elif gradient_checkpointing:
+            # Recompute activations in backward -> big memory savings when
+            # fine-tuning over many audio chunks. use_reentrant=False works even
+            # when the input tensor doesn't require grad.
+            self.backbone.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
 
     @property
     def output_dim(self) -> int:

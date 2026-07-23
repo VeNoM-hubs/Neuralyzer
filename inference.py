@@ -84,6 +84,7 @@ def main() -> None:
         feature_extractor=feature_extractor, tokenizer=tokenizer,
         sample_rate=cfg.data.sample_rate, chunk_seconds=cfg.data.chunk_seconds,
         max_text_length=cfg.data.max_text_length,
+        max_chunks_per_recording=cfg.data.max_chunks_per_recording,
     )
 
     waveform = load_audio(args.audio, cfg.data.sample_rate)  # [T]

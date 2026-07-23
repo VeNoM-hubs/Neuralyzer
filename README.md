@@ -153,8 +153,26 @@ Everything is in `src/configs/default.yaml`. Key settings:
 > `--scheduler steplr --lr 2e-5 --max-epochs 100 --patience 8`).
 >
 > **CLI overrides** (train.py): `--dataset --data-root --transcripts-file
-> --label-map '{"Dementia":1,"Control":0}' --lr --max-epochs --patience
-> --scheduler --output-dir --single-seed`.
+> --label-map '{"Dementia":1,"Control":0}' --labels-csv --tasks --lr
+> --batch-size --max-chunks --max-epochs --patience --scheduler --output-dir
+> --single-seed`.
+
+### GPU memory / CUDA OOM
+
+The speech encoder runs HuBERT over **every 10s chunk of the whole batch at
+once**, so long recordings (e.g. PROCESS) can blow past a ~15 GB GPU. Defaults
+are tuned to fit a free Colab **T4** at batch size 8 (kept at 8 because MINE
+needs a real batch to estimate mutual information):
+
+- `use_amp: true` — fp16, ~half the activation memory.
+- `gradient_checkpointing: true` — recompute activations in backward.
+- `max_chunks_per_recording: 6` — cap at 60s of audio per recording.
+
+Still OOM? Turn these levers (cheapest first):
+```bash
+python train.py --dataset process --data-root /content/pitt --max-chunks 4   # 40s cap
+python train.py --dataset process --data-root /content/pitt --batch-size 4   # last resort (weakens MINE)
+```
 
 ## Ablations (paper Sec VII)
 

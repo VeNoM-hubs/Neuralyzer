@@ -7,6 +7,7 @@ data:
   data_root: null        # set to your dataset root (never hardcoded)
   sample_rate: 16000
   chunk_seconds: 10.0
+  max_chunks_per_recording: 6   # cap chunks/recording to bound GPU memory (null = no cap)
   max_text_length: 512
   val_ratio: 0.35        # 65/35 train/val split, stratified
   num_workers: 0
@@ -41,6 +42,7 @@ model:
   mine_hidden: 512
   freeze_speech: false
   freeze_text: false
+  gradient_checkpointing: true   # recompute activations in backward to save GPU memory
 
 train:
   batch_size: 8
@@ -60,4 +62,4 @@ train:
   seeds: [42, 43, 44, 45, 46]
   device: auto
   output_dir: runs
-  use_amp: false
+  use_amp: true          # fp16 on CUDA (~half the activation memory); ignored on CPU

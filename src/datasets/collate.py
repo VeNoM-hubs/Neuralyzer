@@ -16,7 +16,7 @@ Batching strategy for variable-length recordings:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import torch
 
@@ -28,6 +28,7 @@ class MultimodalCollator:
     sample_rate: int = 16000
     chunk_seconds: float = 10.0
     max_text_length: int = 512
+    max_chunks_per_recording: Optional[int] = None
 
     @property
     def chunk_len(self) -> int:
@@ -38,13 +39,17 @@ class MultimodalCollator:
 
         The final partial chunk is kept shorter; the feature extractor pads it
         and the attention mask excludes padded frames from pooling. Always
-        returns at least one chunk.
+        returns at least one chunk. If ``max_chunks_per_recording`` is set, only
+        the first N chunks are kept (bounds GPU memory for long recordings).
         """
         T = waveform.shape[0]
         clen = self.chunk_len
         if T == 0:
             return [torch.zeros(clen, dtype=torch.float32)]
-        return [waveform[i : i + clen] for i in range(0, T, clen)]
+        chunks = [waveform[i : i + clen] for i in range(0, T, clen)]
+        if self.max_chunks_per_recording is not None:
+            chunks = chunks[: self.max_chunks_per_recording]
+        return chunks
 
     def __call__(self, batch: List[Dict]) -> Dict[str, torch.Tensor]:
         all_chunks: List[torch.Tensor] = []

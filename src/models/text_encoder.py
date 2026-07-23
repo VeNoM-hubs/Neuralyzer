@@ -18,7 +18,8 @@ from transformers import AutoModel
 
 
 class TextEncoder(nn.Module):
-    def __init__(self, model_name: str = "bert-base-uncased", freeze: bool = False) -> None:
+    def __init__(self, model_name: str = "bert-base-uncased", freeze: bool = False,
+                 gradient_checkpointing: bool = False) -> None:
         super().__init__()
         self.backbone = AutoModel.from_pretrained(model_name)
         self.hidden_size = self.backbone.config.hidden_size
@@ -27,6 +28,10 @@ class TextEncoder(nn.Module):
             for p in self.backbone.parameters():
                 p.requires_grad = False
             self.backbone.eval()
+        elif gradient_checkpointing:
+            self.backbone.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
 
     @property
     def output_dim(self) -> int:

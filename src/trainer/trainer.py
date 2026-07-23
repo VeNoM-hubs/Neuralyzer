@@ -36,6 +36,7 @@ def build_dataloaders(cfg: Config) -> Tuple[DataLoader, DataLoader]:
         feature_extractor=feature_extractor, tokenizer=tokenizer,
         sample_rate=cfg.data.sample_rate, chunk_seconds=cfg.data.chunk_seconds,
         max_text_length=cfg.data.max_text_length,
+        max_chunks_per_recording=cfg.data.max_chunks_per_recording,
     )
 
     full = build_dataset(cfg.data, split="train")
@@ -74,7 +75,9 @@ class Trainer:
         # Scheduler is built in fit() (needs steps-per-epoch for warmup schedules).
         self.scheduler = None
         self.step_scheduler_per_batch = False
-        self.scaler = torch.cuda.amp.GradScaler(enabled=cfg.train.use_amp)
+        # AMP only makes sense (and is only supported here) on CUDA.
+        self.amp_enabled = bool(cfg.train.use_amp) and self.device.type == "cuda"
+        self.scaler = torch.amp.GradScaler("cuda", enabled=self.amp_enabled)
 
     def _build_optimizer(self) -> torch.optim.Optimizer:
         params = [p for p in self.model.parameters() if p.requires_grad]
@@ -145,7 +148,7 @@ class Trainer:
                 if train:
                     self.optimizer.zero_grad()
 
-                with torch.cuda.amp.autocast(enabled=self.cfg.train.use_amp):
+                with torch.autocast(device_type=self.device.type, enabled=self.amp_enabled):
                     out = self.model(batch)
                     loss, ce, mi = combined_loss(
                         out.logits, labels, self.model.mine, out.f_a, out.f_t,
