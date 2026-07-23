@@ -38,10 +38,17 @@ class DataConfig:
     # If None, the loader looks for <data_root>/transcripts.json. The Kaggle dataset
     # ships audio only, so transcripts must be generated with Whisper first.
     transcripts_file: Optional[str] = None
-    # Maps class sub-folder name -> label (0 control / 1 dementia). If None, the
-    # loader uses a default map of common names and errors on any unknown folder
-    # (so nothing is silently mislabeled).
+    # Maps class name -> label (0 control / 1 dementia). Used by kaggle_pitt
+    # (folder names) and process (CSV Class values). If None, each loader uses a
+    # sensible default and errors on unknown values (nothing silently mislabeled).
     label_map: Optional[Dict[str, int]] = None
+
+    # --- process (PROCESS Challenge Kaggle re-upload) options ---
+    # Path to the labels CSV (Record-ID + Class). If None, auto-detected under data_root.
+    labels_csv: Optional[str] = None
+    # Which task(s) to use. Default CTD (Cookie Theft) matches the picture-description
+    # paradigm; PFT/SFT are word-list fluency tasks. Each (record, task) is one sample.
+    process_tasks: Optional[List[str]] = None
 
     # Validation split (paper: 65/35), stratified by label (user decision).
     val_ratio: float = 0.35

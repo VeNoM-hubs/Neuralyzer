@@ -29,7 +29,7 @@ them with attention (AT-Fusion), and classifies AD vs. control.
 src/
   configs/      # dataclass config + default.yaml (all knobs; nothing hardcoded)
   utils/        # seeding, logging, device
-  datasets/     # base contract, collator (10s chunking + tokenize), mock, kaggle_pitt, adress*, process2*, factory
+  datasets/     # base contract, collator (10s chunking + tokenize), mock, process, kaggle_pitt, adress*, process2*, factory
   modules/      # pooling (ASP/mean/max), fusion (AT/concat/GMU/MUTAN/MFB/MFH/BLOCK), MINE, classifier
   models/       # speech_encoder, text_encoder, multimodal_model
   losses/       # MINE DV bound + combined loss
@@ -60,34 +60,41 @@ Smoke / training commands (also runnable in a Colab cell):
 python scripts/smoke_test.py
 # mock (pipeline check, meaningless metrics):
 python train.py --config src/configs/default.yaml --dataset mock --single-seed --max-epochs 3
-# open Kaggle Pitt data (real English speech), after downloading + transcribing (below):
-python train.py --config src/configs/default.yaml --dataset kaggle_pitt --data-root /content/pitt
+# real open data (PROCESS Challenge, English speech):
+python train.py --config src/configs/default.yaml --dataset process --data-root /content/pitt
 ```
 
-### Open dataset: Kaggle Pitt Cookie-Theft (`dataset: kaggle_pitt`)
+### Open dataset: PROCESS Challenge (`dataset: process`)
 
 Real, English, no data-use-agreement (only a free Kaggle login):
 [`tahouramorovati/dementia-detection-using-speech`](https://www.kaggle.com/datasets/tahouramorovati/dementia-detection-using-speech)
-— a Pitt Corpus re-upload (~442 recordings, class-separated folders).
+— a **PROCESS Challenge** re-upload: 157 labeled `Process-rec-XXX` participants,
+each with 3 task recordings (**CTD** Cookie Theft, **PFT** phonemic fluency,
+**SFT** semantic fluency) plus co-located `.txt` transcripts, and labels in
+`Data_AUG_13.11.2024_output.csv` (`Record-ID`, `Class` = HC/MCI/Dementia).
 
-It's **audio-only**, so transcripts are generated with Whisper (as the paper does
-for datasets without transcripts):
+The loader uses the **CTD** task by default (matches the paper's picture
+description), reads the co-located transcript (no Whisper needed), and maps the
+label **HC → 0, MCI + Dementia → 1** (the paper's binary grouping):
 ```bash
 # 1) download (needs kaggle.json token) and unzip
 kaggle datasets download -d tahouramorovati/dementia-detection-using-speech -p /content/pitt --unzip
-# 2) transcribe once -> writes /content/pitt/transcripts.json
-python scripts/transcribe_whisper.py --data-root /content/pitt --model base --language en
-# 3) train
-python train.py --config src/configs/default.yaml --dataset kaggle_pitt --data-root /content/pitt
+# 2) train (auto-detects the labels CSV under the data root)
+python train.py --config src/configs/default.yaml --dataset process --data-root /content/pitt
+# use all three tasks (3x samples) instead of just CTD:
+python train.py --dataset process --data-root /content/pitt --tasks CTD,SFT,PFT
 ```
-The loader auto-maps class folders (`dementia/ad/cd \u2192 1`, `control/hc/cn/cc \u2192 0`).
-If your folders differ, set `data.label_map` in the YAML, e.g.:
+Override the class mapping or CSV if needed:
 ```yaml
 data:
-  label_map: {Dementia: 1, Control: 0}
+  label_map: {HC: 0, MCI: 1, Dementia: 1}
+  labels_csv: /content/pitt/Data_AUG_13.11.2024_output.csv
+  process_tasks: [CTD]
 ```
-> **License:** this re-upload derives from DementiaBank (data-use-agreement data).
-> Fine for personal reproduction; not for publication/production.
+> **License:** derived from PROCESS/DementiaBank data. Personal reproduction only.
+>
+> The same Kaggle upload also bundles Pitt transcripts (`Training_No.csv`) with
+> no audio, so only the PROCESS records are usable for the multimodal model.
 
 ## B. Run inference locally
 
@@ -162,7 +169,8 @@ python ablate.py --study layers    # last 1 / 2 / 3 HuBERT layers
 ## Datasets
 
 - **Mock** (`dataset: mock`): synthetic, for pipeline validation only — metrics are meaningless.
-- **Kaggle Pitt** (`dataset: kaggle_pitt`): open English Cookie-Theft speech (free Kaggle login); audio-only → Whisper transcripts. See the workflow above. License caveat applies.
+- **PROCESS** (`dataset: process`): open English speech (free Kaggle login); CTD task, transcripts included, HC=0 / MCI+Dementia=1. See the workflow above. License caveat applies.
+- **Kaggle Pitt** (`dataset: kaggle_pitt`): folder-labeled + Whisper-transcript loader — kept for other audio-only Kaggle uploads; not the dataset above.
 - **ADReSS / PROCESS-2**: gated (DementiaBank / HuggingFace). Loaders are stubs
   raising `NotImplementedError` until the real data and its exact format can be
   inspected — per the reproduction rule, unspecified details are not guessed.

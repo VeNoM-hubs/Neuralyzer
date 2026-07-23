@@ -34,6 +34,10 @@ def parse_args() -> argparse.Namespace:
                    help="Override data.transcripts_file (kaggle_pitt).")
     p.add_argument("--label-map", type=str, default=None,
                    help='Override data.label_map as JSON, e.g. \'{"Dementia":1,"Control":0}\'.')
+    p.add_argument("--labels-csv", type=str, default=None,
+                   help="Override data.labels_csv (process dataset).")
+    p.add_argument("--tasks", type=str, default=None,
+                   help="process tasks, comma-separated, e.g. 'CTD' or 'CTD,SFT,PFT'.")
     p.add_argument("--output-dir", type=str, default=None, help="Override train.output_dir.")
     p.add_argument("--max-epochs", type=int, default=None, help="Override train.max_epochs.")
     p.add_argument("--lr", type=float, default=None, help="Override train.lr (peak LR).")
@@ -55,6 +59,10 @@ def apply_overrides(cfg: Config, args: argparse.Namespace) -> Config:
         cfg.data.transcripts_file = args.transcripts_file
     if args.label_map is not None:
         cfg.data.label_map = {k: int(v) for k, v in json.loads(args.label_map).items()}
+    if args.labels_csv is not None:
+        cfg.data.labels_csv = args.labels_csv
+    if args.tasks is not None:
+        cfg.data.process_tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
     if args.output_dir is not None:
         cfg.train.output_dir = args.output_dir
     if args.max_epochs is not None:
