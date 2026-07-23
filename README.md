@@ -177,6 +177,24 @@ python train.py --dataset process --data-root /content/pitt --max-chunks 3   # 3
 python train.py --dataset process --data-root /content/pitt --batch-size 4   # last resort (weakens MINE)
 ```
 
+### Multi-GPU (e.g. Kaggle 2xT4)
+
+A single `train.py` process uses **one** GPU. To use several GPUs, run the
+seed-parallel launcher: it starts one `train.py` process per GPU (pinned via
+`CUDA_VISIBLE_DEVICES`), splits the seeds across them, streams both logs live,
+and aggregates every `gpuN/summary.csv` into one mean +/- std table at the end.
+MINE's per-run batch stays intact (we parallelize *seeds*, not the model).
+
+```bash
+python train_parallel.py --dataset process \
+  --data-root /kaggle/input/<folder> \
+  --output-dir /kaggle/working/outputs \
+  --seeds 42,43,44,45,46            # round-robined across all visible GPUs
+# add --gpus 0,1 to restrict devices; extra flags (--max-chunks, --batch-size, ...) are forwarded
+```
+
+Best checkpoints land at `<output-dir>/gpuN/best_model.pt`.
+
 ## Ablations (paper Sec VII)
 
 ```bash
