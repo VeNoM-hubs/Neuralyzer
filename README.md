@@ -166,11 +166,14 @@ needs a real batch to estimate mutual information):
 
 - `use_amp: true` — fp16, ~half the activation memory.
 - `gradient_checkpointing: true` — recompute activations in backward.
-- `max_chunks_per_recording: 6` — cap at 60s of audio per recording.
+- `max_chunks_per_recording: 4` — cap at 40s of audio per recording.
+- `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` — set automatically by
+  `train.py`; reclaims "reserved but unallocated" memory (fixes fragmentation OOM
+  in `.backward()`).
 
 Still OOM? Turn these levers (cheapest first):
 ```bash
-python train.py --dataset process --data-root /content/pitt --max-chunks 4   # 40s cap
+python train.py --dataset process --data-root /content/pitt --max-chunks 3   # 30s cap
 python train.py --dataset process --data-root /content/pitt --batch-size 4   # last resort (weakens MINE)
 ```
 

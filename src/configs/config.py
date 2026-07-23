@@ -30,9 +30,9 @@ class DataConfig:
     sample_rate: int = 16000
     chunk_seconds: float = 10.0  # paper: fixed 10-second segments
     # Cap on 10s chunks kept per recording. Bounds GPU memory for long recordings
-    # (the speech encoder runs over every chunk at once). None = no cap. Default 6
-    # (=60s) fits a ~15 GB GPU at batch size 8; keeps MINE's batch intact.
-    max_chunks_per_recording: Optional[int] = 6
+    # (the speech encoder runs over every chunk at once). None = no cap. Default 4
+    # (=40s) fits a ~15 GB GPU at batch size 8; keeps MINE's batch intact.
+    max_chunks_per_recording: Optional[int] = 4
 
     # Text (user decision): BERT max_length 512, truncation on.
     max_text_length: int = 512

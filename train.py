@@ -18,6 +18,10 @@ import json
 import os
 import shutil
 
+# Reduce CUDA fragmentation (frees "reserved but unallocated" memory). Must be
+# set before torch initializes its CUDA allocator, i.e. before importing src.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 from src.configs import Config, load_config, save_config
 from src.evaluation import METRIC_KEYS, aggregate_runs
 from src.trainer import Trainer, build_dataloaders
