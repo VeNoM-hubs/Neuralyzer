@@ -18,3 +18,8 @@ tqdm>=4.65.0
 
 # Audio I/O backend for torchaudio (wav loading)
 soundfile>=0.12.1
+
+# Open-access Kaggle Pitt workflow: dataset download + Whisper transcription.
+# (Only needed for dataset=kaggle_pitt; harmless otherwise.)
+kaggle>=1.6.0
+openai-whisper>=20231117

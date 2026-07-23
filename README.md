@@ -29,7 +29,7 @@ them with attention (AT-Fusion), and classifies AD vs. control.
 src/
   configs/      # dataclass config + default.yaml (all knobs; nothing hardcoded)
   utils/        # seeding, logging, device
-  datasets/     # base contract, collator (10s chunking + tokenize), mock, adress*, process2*, factory
+  datasets/     # base contract, collator (10s chunking + tokenize), mock, kaggle_pitt, adress*, process2*, factory
   modules/      # pooling (ASP/mean/max), fusion (AT/concat/GMU/MUTAN/MFB/MFH/BLOCK), MINE, classifier
   models/       # speech_encoder, text_encoder, multimodal_model
   losses/       # MINE DV bound + combined loss
@@ -38,7 +38,8 @@ src/
 train.py        # multi-seed training  (run on Colab) → runs/best_model.pt
 ablate.py       # ablation studies      (run on Colab)
 inference.py    # local prediction from best_model.pt
-scripts/smoke_test.py   # end-to-end mock pipeline check
+scripts/smoke_test.py        # end-to-end mock pipeline check
+scripts/transcribe_whisper.py   # Whisper transcripts for audio-only datasets (kaggle_pitt)
 notebooks/train_on_colab.ipynb   # Colab: install → smoke → train → download .pt
 requirements-train.txt      # Colab (training) deps
 requirements-inference.txt  # local (inference-only) deps
@@ -54,13 +55,39 @@ wheels/         # cached torch wheel for offline local install
 2. Open `notebooks/train_on_colab.ipynb` in Colab, set **Runtime → GPU**.
 3. Run the cells: clone → install → smoke test → train → download `best_model.pt`.
 
-Smoke / real-data commands (also runnable in a Colab cell):
+Smoke / training commands (also runnable in a Colab cell):
 ```bash
 python scripts/smoke_test.py
+# mock (pipeline check, meaningless metrics):
 python train.py --config src/configs/default.yaml --dataset mock --single-seed --max-epochs 3
-# real data (after implementing the loader):
-python train.py --config src/configs/default.yaml --dataset adress --data-root /content/adress
+# open Kaggle Pitt data (real English speech), after downloading + transcribing (below):
+python train.py --config src/configs/default.yaml --dataset kaggle_pitt --data-root /content/pitt
 ```
+
+### Open dataset: Kaggle Pitt Cookie-Theft (`dataset: kaggle_pitt`)
+
+Real, English, no data-use-agreement (only a free Kaggle login):
+[`tahouramorovati/dementia-detection-using-speech`](https://www.kaggle.com/datasets/tahouramorovati/dementia-detection-using-speech)
+— a Pitt Corpus re-upload (~442 recordings, class-separated folders).
+
+It's **audio-only**, so transcripts are generated with Whisper (as the paper does
+for datasets without transcripts):
+```bash
+# 1) download (needs kaggle.json token) and unzip
+kaggle datasets download -d tahouramorovati/dementia-detection-using-speech -p /content/pitt --unzip
+# 2) transcribe once -> writes /content/pitt/transcripts.json
+python scripts/transcribe_whisper.py --data-root /content/pitt --model base --language en
+# 3) train
+python train.py --config src/configs/default.yaml --dataset kaggle_pitt --data-root /content/pitt
+```
+The loader auto-maps class folders (`dementia/ad/cd \u2192 1`, `control/hc/cn/cc \u2192 0`).
+If your folders differ, set `data.label_map` in the YAML, e.g.:
+```yaml
+data:
+  label_map: {Dementia: 1, Control: 0}
+```
+> **License:** this re-upload derives from DementiaBank (data-use-agreement data).
+> Fine for personal reproduction; not for publication/production.
 
 ## B. Run inference locally
 
@@ -114,6 +141,7 @@ python ablate.py --study layers    # last 1 / 2 / 3 HuBERT layers
 ## Datasets
 
 - **Mock** (`dataset: mock`): synthetic, for pipeline validation only — metrics are meaningless.
+- **Kaggle Pitt** (`dataset: kaggle_pitt`): open English Cookie-Theft speech (free Kaggle login); audio-only → Whisper transcripts. See the workflow above. License caveat applies.
 - **ADReSS / PROCESS-2**: gated (DementiaBank / HuggingFace). Loaders are stubs
   raising `NotImplementedError` until the real data and its exact format can be
   inspected — per the reproduction rule, unspecified details are not guessed.

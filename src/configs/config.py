@@ -9,7 +9,7 @@ resolved via explicit user decision and is annotated below.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 
@@ -23,7 +23,7 @@ class DataConfig:
     "DEVELOPMENT DATASET POLICY"). All fields here are dataset-agnostic.
     """
 
-    dataset: str = "mock"  # "mock" | "adress" | "process2"
+    dataset: str = "mock"  # "mock" | "kaggle_pitt" | "adress" | "process2"
     data_root: Optional[str] = None  # never hardcoded; supplied via config/CLI
 
     # Audio (user decision): 16 kHz, resample if needed, no silence removal.
@@ -32,6 +32,16 @@ class DataConfig:
 
     # Text (user decision): BERT max_length 512, truncation on.
     max_text_length: int = 512
+
+    # --- kaggle_pitt (open-access Kaggle Pitt re-upload) options ---
+    # JSON file mapping {wav_stem: transcript}, produced by scripts/transcribe_whisper.py.
+    # If None, the loader looks for <data_root>/transcripts.json. The Kaggle dataset
+    # ships audio only, so transcripts must be generated with Whisper first.
+    transcripts_file: Optional[str] = None
+    # Maps class sub-folder name -> label (0 control / 1 dementia). If None, the
+    # loader uses a default map of common names and errors on any unknown folder
+    # (so nothing is silently mislabeled).
+    label_map: Optional[Dict[str, int]] = None
 
     # Validation split (paper: 65/35), stratified by label (user decision).
     val_ratio: float = 0.35

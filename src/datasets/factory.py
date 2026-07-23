@@ -19,6 +19,16 @@ def build_dataset(cfg: DataConfig, split: str = "train") -> BaseDementiaDataset:
         seed = 0 if split == "train" else 1
         return MockDementiaDataset(sample_rate=cfg.sample_rate, seed=seed)
 
+    if name == "kaggle_pitt":
+        from .kaggle_pitt import KagglePittDataset
+
+        if cfg.data_root is None:
+            raise ValueError("data.data_root must be set for the kaggle_pitt dataset.")
+        return KagglePittDataset(
+            cfg.data_root, sample_rate=cfg.sample_rate,
+            transcripts_file=cfg.transcripts_file, label_map=cfg.label_map, split=split,
+        )
+
     if name == "adress":
         from .adress import ADReSSDataset
 
@@ -33,4 +43,6 @@ def build_dataset(cfg: DataConfig, split: str = "train") -> BaseDementiaDataset:
             raise ValueError("data.data_root must be set for the PROCESS-2 dataset.")
         return Process2Dataset(cfg.data_root, split=split, sample_rate=cfg.sample_rate)
 
-    raise ValueError(f"Unknown dataset '{cfg.dataset}'. Expected mock|adress|process2.")
+    raise ValueError(
+        f"Unknown dataset '{cfg.dataset}'. Expected mock|kaggle_pitt|adress|process2."
+    )

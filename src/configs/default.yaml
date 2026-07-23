@@ -3,7 +3,7 @@
 # Override any field via a custom YAML passed to train.py --config.
 
 data:
-  dataset: mock          # mock | adress | process2
+  dataset: mock          # mock | kaggle_pitt | adress | process2
   data_root: null        # set to your dataset root (never hardcoded)
   sample_rate: 16000
   chunk_seconds: 10.0
@@ -11,6 +11,9 @@ data:
   val_ratio: 0.35        # 65/35 train/val split, stratified
   num_workers: 0
   pin_memory: false
+  # kaggle_pitt only: Whisper-generated transcripts + folder->label mapping.
+  transcripts_file: null   # default: <data_root>/transcripts.json
+  label_map: null          # default: common names (dementia/ad/cd=1, control/hc/cn/cc=0)
 
 model:
   speech_model_name: facebook/hubert-base-ls960
