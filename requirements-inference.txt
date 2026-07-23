@@ -1,0 +1,13 @@
+# Local inference dependencies ONLY (no training / no scikit-learn).
+# Loads best_model.pt (trained on Colab) and predicts on one audio+transcript.
+#
+# torch note: if network downloads are flaky, install the cached CPU wheel first:
+#   pip install wheels/torch-2.9.0+cpu-cp313-cp313-win_amd64.whl
+# then run:  pip install -r requirements-inference.txt
+
+torch>=2.0.0
+torchaudio>=2.0.0            # optional; soundfile is used as a fallback for wav I/O
+transformers>=4.40.0
+numpy>=1.24.0
+PyYAML>=6.0
+soundfile>=0.12.1

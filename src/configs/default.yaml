@@ -1,0 +1,55 @@
+# Default configuration. Reproduces the paper's specified settings plus the
+# user-confirmed choices for previously-unspecified details.
+# Override any field via a custom YAML passed to train.py --config.
+
+data:
+  dataset: mock          # mock | adress | process2
+  data_root: null        # set to your dataset root (never hardcoded)
+  sample_rate: 16000
+  chunk_seconds: 10.0
+  max_text_length: 512
+  val_ratio: 0.35        # 65/35 train/val split, stratified
+  num_workers: 0
+  pin_memory: false
+
+model:
+  speech_model_name: facebook/hubert-base-ls960
+  num_speech_layers: 2   # sum last N hidden layers (ablation: 1/2/3)
+  pooling: asp           # asp | mean | max
+  asp_bottleneck: 128
+  speech_embed_dim: 768
+  text_model_name: bert-base-uncased
+  text_embed_dim: 768
+  fusion: at_fusion      # at_fusion | concat | gmu | mutan | mfb | mfh | block
+  fused_dim: 768
+  # Bilinear-fusion defaults (block.bootstrap.pytorch / original papers).
+  bilinear_mm_dim: 1600
+  bilinear_mfb_mm_dim: 1200
+  bilinear_rank: 15
+  bilinear_factor: 2
+  bilinear_chunks: 20
+  bilinear_dropout: 0.1
+  classifier_hidden: 128
+  num_classes: 2
+  dropout: 0.1
+  mine_hidden: 512
+  freeze_speech: false
+  freeze_text: false
+
+train:
+  batch_size: 8
+  max_epochs: 100
+  early_stopping_patience: 8
+  optimizer: adamw
+  lr: 2.0e-5
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+  grad_clip: 1.0
+  scheduler_step_size: 4
+  scheduler_gamma: 0.1
+  mine_lambda: 0.25      # ablation: 0 / 0.1 / 0.2 / 0.25 / 0.3
+  seed: 42
+  seeds: [42, 43, 44, 45, 46]
+  device: auto
+  output_dir: runs
+  use_amp: false

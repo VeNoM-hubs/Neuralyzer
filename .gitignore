@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Training artifacts
+runs/
+*.pt
+
+# Data (datasets are gated; never commit)
+data/
+*.wav
+*.cha
+
+# Cached pip wheels are large (>100MB) and NOT source. Kept locally for a
+# fast/offline torch install, but never committed (exceeds GitHub's size limit).
+wheels/
+
+# HuggingFace / torch caches
+.cache/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Paper PDF (large, not source)
+*.pdf
