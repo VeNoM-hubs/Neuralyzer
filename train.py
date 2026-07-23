@@ -54,6 +54,10 @@ def parse_args() -> argparse.Namespace:
                    choices=["linear_warmup", "cosine_warmup", "steplr"],
                    help="Override train.scheduler.")
     p.add_argument("--single-seed", action="store_true", help="Run only the first seed.")
+    p.add_argument("--seeds", type=str, default=None,
+                   help="Comma-separated seeds to run, e.g. '42,43,44'. Overrides the "
+                        "config list; handy for pinning seed subsets to separate GPUs "
+                        "(run two processes with different CUDA_VISIBLE_DEVICES).")
     return p.parse_args()
 
 
@@ -84,6 +88,8 @@ def apply_overrides(cfg: Config, args: argparse.Namespace) -> Config:
         cfg.train.early_stopping_patience = args.patience
     if args.scheduler is not None:
         cfg.train.scheduler = args.scheduler
+    if args.seeds is not None:
+        cfg.train.seeds = [int(s.strip()) for s in args.seeds.split(",") if s.strip()]
     return cfg
 
 
