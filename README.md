@@ -91,12 +91,17 @@ data:
 
 ## B. Run inference locally
 
-Install the lightweight inference deps. If the network is flaky, install the
-cached torch wheel first:
+> The full pipeline (HuBERT + BERT → ASP → MINE + AT-Fusion → classifier) is
+> **verified to run locally on CPU** via `scripts/smoke_test.py` with real
+> pretrained weights (correct shapes, decreasing loss).
+
+Create the venv **outside the repo** (this workspace periodically runs
+`git clean`, which deletes an in-repo `.venv/` since it's git-ignored), then
+install the lightweight inference deps:
 ```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install wheels\torch-2.9.0+cpu-cp313-cp313-win_amd64.whl   # optional, avoids re-downloading torch
+py -3.13 -m venv C:\Users\lukra\neuralyzer_venv
+C:\Users\lukra\neuralyzer_venv\Scripts\Activate.ps1
+pip install wheels\torch-2.9.0+cpu-cp313-cp313-win_amd64.whl   # cached torch, avoids re-download
 pip install -r requirements-inference.txt
 ```
 
@@ -106,6 +111,12 @@ python inference.py --checkpoint best_model.pt --audio recording.wav --transcrip
 # or:
 python inference.py --checkpoint best_model.pt --audio recording.wav --transcript-file recording.txt
 ```
+
+### Local troubleshooting (flaky-network workarounds, verified)
+- **In-repo `.venv/` vanishes:** the workspace runs `git clean` on ignored files. Keep the venv **outside the repo** (as above).
+- **PyPI (`files.pythonhosted.org`) resets after ~1 MB:** push installs through with heavy retries so partial downloads accumulate — `pip install ... --retries 300 --resume-retries 2000`. PyTorch's CDN and HuggingFace are unaffected.
+- **HuggingFace model download crashes** (`error decoding response body` from the Xet backend): set `HF_HUB_DISABLE_XET=1` before downloading models (falls back to the classic resumable path).
+- **transformers version:** pinned `>=4.40,<5` — `AutoModel`/HuBERT API is stable there; 5.x risks API breaks (verified working on `transformers==4.57.1`).
 
 ---
 

@@ -7,7 +7,7 @@
 
 torch>=2.0.0
 torchaudio>=2.0.0            # optional; soundfile is used as a fallback for wav I/O
-transformers>=4.40.0
+transformers>=4.40,<5        # <5 keeps AutoModel/HuBERT API stable (verified on 4.57.1)
 numpy>=1.24.0
 PyYAML>=6.0
 soundfile>=0.12.1
