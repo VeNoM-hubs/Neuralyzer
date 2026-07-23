@@ -14,6 +14,7 @@ Usage (Colab):
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 
@@ -29,8 +30,18 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--config", type=str, default="src/configs/default.yaml")
     p.add_argument("--dataset", type=str, default=None, help="Override data.dataset.")
     p.add_argument("--data-root", type=str, default=None, help="Override data.data_root.")
+    p.add_argument("--transcripts-file", type=str, default=None,
+                   help="Override data.transcripts_file (kaggle_pitt).")
+    p.add_argument("--label-map", type=str, default=None,
+                   help='Override data.label_map as JSON, e.g. \'{"Dementia":1,"Control":0}\'.')
     p.add_argument("--output-dir", type=str, default=None, help="Override train.output_dir.")
     p.add_argument("--max-epochs", type=int, default=None, help="Override train.max_epochs.")
+    p.add_argument("--lr", type=float, default=None, help="Override train.lr (peak LR).")
+    p.add_argument("--patience", type=int, default=None,
+                   help="Override train.early_stopping_patience.")
+    p.add_argument("--scheduler", type=str, default=None,
+                   choices=["linear_warmup", "cosine_warmup", "steplr"],
+                   help="Override train.scheduler.")
     p.add_argument("--single-seed", action="store_true", help="Run only the first seed.")
     return p.parse_args()
 
@@ -40,10 +51,20 @@ def apply_overrides(cfg: Config, args: argparse.Namespace) -> Config:
         cfg.data.dataset = args.dataset
     if args.data_root is not None:
         cfg.data.data_root = args.data_root
+    if args.transcripts_file is not None:
+        cfg.data.transcripts_file = args.transcripts_file
+    if args.label_map is not None:
+        cfg.data.label_map = {k: int(v) for k, v in json.loads(args.label_map).items()}
     if args.output_dir is not None:
         cfg.train.output_dir = args.output_dir
     if args.max_epochs is not None:
         cfg.train.max_epochs = args.max_epochs
+    if args.lr is not None:
+        cfg.train.lr = args.lr
+    if args.patience is not None:
+        cfg.train.early_stopping_patience = args.patience
+    if args.scheduler is not None:
+        cfg.train.scheduler = args.scheduler
     return cfg
 
 

@@ -71,9 +71,9 @@ class Trainer:
 
         self.model = MultimodalDementiaModel(cfg.model).to(self.device)
         self.optimizer = self._build_optimizer()
-        self.scheduler = torch.optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=cfg.train.scheduler_step_size, gamma=cfg.train.scheduler_gamma,
-        )
+        # Scheduler is built in fit() (needs steps-per-epoch for warmup schedules).
+        self.scheduler = None
+        self.step_scheduler_per_batch = False
         self.scaler = torch.cuda.amp.GradScaler(enabled=cfg.train.use_amp)
 
     def _build_optimizer(self) -> torch.optim.Optimizer:
@@ -88,6 +88,43 @@ class Trainer:
         if name == "sgd":
             return torch.optim.SGD(params, lr=self.cfg.train.lr, weight_decay=self.cfg.train.weight_decay)
         raise ValueError(f"Unknown optimizer '{self.cfg.train.optimizer}'.")
+
+    def _build_scheduler(self, steps_per_epoch: int) -> None:
+        """Build the LR scheduler once the dataloader size is known.
+
+        - steplr: paper-exact StepLR, stepped once per epoch.
+        - linear_warmup / cosine_warmup: warmup then decay across the full run
+          (total_steps = steps_per_epoch * max_epochs), stepped once per batch.
+        """
+        name = self.cfg.train.scheduler.lower()
+        if name == "steplr":
+            self.scheduler = torch.optim.lr_scheduler.StepLR(
+                self.optimizer, step_size=self.cfg.train.scheduler_step_size,
+                gamma=self.cfg.train.scheduler_gamma,
+            )
+            self.step_scheduler_per_batch = False
+            return
+
+        total_steps = max(1, steps_per_epoch * self.cfg.train.max_epochs)
+        warmup_steps = int(self.cfg.train.warmup_ratio * total_steps)
+        if name == "linear_warmup":
+            from transformers import get_linear_schedule_with_warmup
+
+            self.scheduler = get_linear_schedule_with_warmup(
+                self.optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps,
+            )
+        elif name == "cosine_warmup":
+            from transformers import get_cosine_schedule_with_warmup
+
+            self.scheduler = get_cosine_schedule_with_warmup(
+                self.optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps,
+            )
+        else:
+            raise ValueError(
+                f"Unknown scheduler '{self.cfg.train.scheduler}'. "
+                f"Expected linear_warmup|cosine_warmup|steplr."
+            )
+        self.step_scheduler_per_batch = True
 
     def _to_device(self, batch: Dict) -> Dict:
         return {k: (v.to(self.device) if torch.is_tensor(v) else v) for k, v in batch.items()}
@@ -122,6 +159,8 @@ class Trainer:
                         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.train.grad_clip)
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
+                    if self.step_scheduler_per_batch and self.scheduler is not None:
+                        self.scheduler.step()
 
                 total_loss += float(loss.item())
                 total_ce += float(ce.item())
@@ -144,10 +183,13 @@ class Trainer:
         epochs_without_improve = 0
         best_val_metrics: Dict[str, float] = {}
 
+        self._build_scheduler(steps_per_epoch=max(1, len(train_loader)))
+
         for epoch in range(1, self.cfg.train.max_epochs + 1):
             train_metrics = self._run_epoch(train_loader, train=True)
             val_metrics = self._run_epoch(val_loader, train=False)
-            self.scheduler.step()
+            if self.scheduler is not None and not self.step_scheduler_per_batch:
+                self.scheduler.step()  # steplr: once per epoch (paper)
 
             self.logger.info(
                 f"epoch {epoch:03d} | train loss {train_metrics['loss']:.4f} "

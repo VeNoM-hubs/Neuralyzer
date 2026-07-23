@@ -112,19 +112,28 @@ class TrainConfig:
     """
 
     batch_size: int = 8
-    max_epochs: int = 100  # upper bound; early stopping terminates first
-    early_stopping_patience: int = 8
+    # Upper bound; early stopping terminates first. Increased from the paper's
+    # setup (user request) so a lower LR has room to converge.
+    max_epochs: int = 250
+    early_stopping_patience: int = 20  # raised from 8 so longer runs aren't cut short
 
     # Optimizer (user decision)
     optimizer: str = "adamw"
-    lr: float = 2e-5
+    # Reduced from 2e-5 -> 1e-5 (user request): the more stable rate for jointly
+    # fine-tuning HuBERT + BERT on a small dataset. Used as the PEAK LR when a
+    # warmup scheduler is active.
+    lr: float = 1e-5
     weight_decay: float = 0.01
     betas: Tuple[float, float] = (0.9, 0.999)
     grad_clip: float = 1.0
 
-    # Scheduler (paper)
-    scheduler_step_size: int = 4
-    scheduler_gamma: float = 0.1
+    # Scheduler. "linear_warmup" (default, user-optimized) or "cosine_warmup"
+    # do warmup then decay over the full horizon (stepped per batch); "steplr"
+    # reproduces the paper exactly (StepLR step_size=4, gamma=0.1, per epoch).
+    scheduler: str = "linear_warmup"  # linear_warmup | cosine_warmup | steplr
+    warmup_ratio: float = 0.1  # fraction of total steps spent warming up
+    scheduler_step_size: int = 4  # used only when scheduler == "steplr" (paper)
+    scheduler_gamma: float = 0.1  # used only when scheduler == "steplr" (paper)
 
     # Loss weighting (paper: lambda = 0.25). Ablation "Lambda": 0/0.1/0.2/0.25/0.3.
     mine_lambda: float = 0.25

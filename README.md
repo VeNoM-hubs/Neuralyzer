@@ -120,13 +120,23 @@ Everything is in `src/configs/default.yaml`. Key settings:
 | Text encoder | `bert-base-uncased`, `[CLS]` | paper |
 | Fusion | AT-Fusion | paper |
 | Loss | CE + 0.25·MINE | paper |
-| Batch size / patience | 8 / 8 | paper |
-| Scheduler | StepLR (step 4, γ 0.1) | paper |
+| Batch size | 8 | paper |
 | Val split | 65/35 stratified | paper |
-| Optimizer | AdamW, lr 2e-5, wd 0.01 | **user decision** |
+| Optimizer | AdamW, wd 0.01 | **user decision** |
+| Learning rate | **1e-5** (peak) | **user-optimized** (paper-era ~2e-5) |
+| Scheduler | **linear warmup + decay** (10% warmup) | **user-optimized** (paper: StepLR 4/0.1) |
+| Max epochs / patience | **250 / 20** | **user-optimized** (paper: 100 / 8) |
 | MINE net | 2 hidden Linear+ReLU (512) | **user decision** |
 | Classifier | 768→128→2, dropout 0.1 | **user decision** |
 | Seeds | 42–46 (5 runs, mean±std) | **user decision** |
+
+> **Paper-exact training:** set `train.scheduler: steplr`, `lr: 2.0e-5`,
+> `max_epochs: 100`, `early_stopping_patience: 8` in the YAML (or pass
+> `--scheduler steplr --lr 2e-5 --max-epochs 100 --patience 8`).
+>
+> **CLI overrides** (train.py): `--dataset --data-root --transcripts-file
+> --label-map '{"Dementia":1,"Control":0}' --lr --max-epochs --patience
+> --scheduler --output-dir --single-seed`.
 
 ## Ablations (paper Sec VII)
 
